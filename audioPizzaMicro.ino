@@ -43,6 +43,7 @@ bool tapThisFrame = false;
 // SENSOR TO LIGHT MATRIX
 bool touchSensorStates[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 const int sensorFromSpotIndex[12] = {0, 3, 7, 8, 9, 10, 1, 11, 6, 5, 4, 2};
+const int sensorToOutputIndex[12] = {0, 3, 7, 8, 9, 10, 1, 11, 6, 5, 4, 2};
 
 // WORLD SETUP
 const int numSpots = 12;
@@ -152,12 +153,12 @@ void loop() {
   for (uint8_t i = 0; i < 12; i++) {
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
-      Serial.print("ST"); Serial.print(i, HEX); Serial.print(1); Serial.println();
+      Serial.print("ST"); Serial.print(sensorToOutputIndex[i], HEX); Serial.print(1); Serial.println();
       touchSensorStates[i] = true;
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
-      Serial.print("ST"); Serial.print(i, HEX); Serial.print(0); Serial.println();
+      Serial.print("ST"); Serial.print(sensorToOutputIndex[i], HEX); Serial.print(0); Serial.println();
       touchSensorStates[i] = false;
     }
   }
@@ -172,8 +173,8 @@ void loop() {
   {
     if (click & 0x30)
     {
-      if (click & 0x10) Serial.print("SA0");
-      if (click & 0x20) Serial.print("SA1");
+      if (click & 0x10) Serial.print("SAT");
+      if (click & 0x20) Serial.print("SAD");
       tapThisFrame = true;
       Serial.println();
     }
