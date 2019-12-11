@@ -9,6 +9,11 @@
 #define _BV(bit) (1 << (bit))
 #endif
 
+// COMMUNICATION SETUP
+const int comMode = 1; // 0 is serial, 1 is MIDI over USB
+// the MIDI channel number to send messages
+const int midiChannel = 1;
+
 // LED SETUP
 const int ledsPerStrip = 60;
 const int ledStripOffset = 1;
@@ -36,7 +41,7 @@ Adafruit_LIS3DH lis = Adafruit_LIS3DH();
 // Adjust this number for the sensitivity of the 'click' force
 // this strongly depend on the range! for 16G, try 5-10
 // for 8G, try 10-20. for 4G try 20-40. for 2G try 40-80
-#define CLICKTHRESHHOLD 80
+#define CLICKTHRESHHOLD 40
 bool tapThisFrame = false;
 
 
@@ -150,17 +155,30 @@ void loop() {
   // Get the currently touched pads
   currtouched = cap.touched();
 
+  int noteOffset = 40;
+
   for (uint8_t i = 0; i < 12; i++) {
     // it if *is* touched and *wasnt* touched before, alert!
     if ((currtouched & _BV(i)) && !(lasttouched & _BV(i)) ) {
+      //      if (comMode == 0) {
       Serial.print("ST"); Serial.print(sensorToOutputIndex[i], HEX); Serial.print(1); Serial.println();
+      //      } else {
+      usbMIDI.sendNoteOn(noteOffset + i, 99, midiChannel);  // 60 = C4
+      //      }
       touchSensorStates[i] = true;
     }
     // if it *was* touched and now *isnt*, alert!
     if (!(currtouched & _BV(i)) && (lasttouched & _BV(i)) ) {
+      //      if (comMode == 0) {
       Serial.print("ST"); Serial.print(sensorToOutputIndex[i], HEX); Serial.print(0); Serial.println();
+      //      } else {
+      usbMIDI.sendNoteOff(noteOffset + i, 0, midiChannel);  // 60 = C4
+      //      }
       touchSensorStates[i] = false;
     }
+  }
+  while (usbMIDI.read()) {
+    // ignore incoming messages
   }
 
   // reset our state
@@ -195,10 +213,10 @@ void loop() {
     float luminanceMult = 50.0;
     if (touchSensorStates[sensorFromSpotIndex[i]]) {
       luminanceMult = 120.0;
+    } else if (tapThisFrame) {
+      luminanceMult = 40.0;
     }
-    if (tapThisFrame) {
-      luminanceMult = 30.0;
-    }
+
     // draw across width of spot
     for (int offset = -1 * spotWidth; offset <= spotWidth; offset++) {
       int led = ledLocation + offset;
@@ -212,5 +230,6 @@ void loop() {
     }
   }
   leds.show();
+
   delay(10);
 }
